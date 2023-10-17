@@ -54,7 +54,7 @@ smart_contract/
 
 ## Development
 
-### 1. Main Image
+### 1. Main service page
 
 ![서비스이미지](/images/mainpage.png)
 
