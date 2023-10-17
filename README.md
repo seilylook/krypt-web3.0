@@ -56,7 +56,7 @@ smart_contract/
 
 ### 1. Main service page
 
-![서비스이미지](/images/mainpage.png)
+![서비스이미지](/images/mainpage.PNG)
 
 ### 2. Transaction
 
