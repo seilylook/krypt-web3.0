@@ -39,12 +39,45 @@ export const TransactionProvider = ({ children }) => {
   const [transactionCount, setTransactionCount] = useState(
     localStorage.getItem("transactionCount")
   );
+  const [transactions, setTransactions] = useState([]);
 
   const handleChange = (e, name) => {
     setFormData((prevState) => ({
       ...prevState,
       [name]: e.target.value,
     }));
+  };
+
+  const getAllTransactions = async () => {
+    try {
+      if (!ethereum)
+        return alert("Please install and make account in Metamask");
+      const transactionContract = await getEthereumContract();
+      const availableTransactions =
+        await transactionContract.getAllTransactions();
+
+      console.log("현재까지 발생한 모든 transactions: ", availableTransactions);
+
+      const structuredTransactions = availableTransactions.map(
+        (transaction) => ({
+          addressTo: transaction.receiver,
+          addressFrom: transaction.sender,
+          timestamp: new Date(
+            transaction.timestamp.toNumber() * 1000
+          ).toLocaleString(),
+          message: transaction.message,
+          keyword: transaction.keyword,
+          amount: parseInt(transaction.amount._hex) / 10 ** 18,
+        })
+      );
+
+      console.log("구조 분리한 transaction data: ", structuredTransactions);
+
+      setTransactions(structuredTransactions);
+    } catch (error) {
+      console.error(error);
+      throw new Error("No Ethereum object exist");
+    }
   };
 
   const checkIfWalletIsConnected = async () => {
@@ -62,6 +95,27 @@ export const TransactionProvider = ({ children }) => {
       } else {
         console.error("No accounts found");
       }
+    } catch (error) {
+      console.error(error);
+      throw new Error("No Ethereum object exist");
+    }
+  };
+
+  const checkIfTransactionsExist = async () => {
+    try {
+      if (!ethereum) return alert("Please install metamask first");
+
+      const transactionContract = getEthereumContract();
+      const transactionCount = await transactionContract.getTransactionCount();
+
+      window.localStorage.setItem("transactionCount", transactionCount);
+
+      console.log(
+        "현재까지 transaction이 발생한적이 있는지 체크: ",
+        transactionCount
+      );
+      // transaction이 발생했다면 개수를 구해주기 위해 함수 호출
+      getAllTransactions();
     } catch (error) {
       console.error(error);
       throw new Error("No Ethereum object exist");
@@ -132,6 +186,8 @@ export const TransactionProvider = ({ children }) => {
       setTransactionCount(transactionCount.toNumber());
 
       await transactionHash.wait();
+
+      window.location.reload();
     } catch (error) {
       console.error(error);
       throw new Error("No Ethereum object exist");
@@ -140,17 +196,20 @@ export const TransactionProvider = ({ children }) => {
 
   useEffect(() => {
     checkIfWalletIsConnected();
-  }, []);
+    checkIfTransactionsExist();
+  }, [transactionCount]);
 
   return (
     <TransactionContext.Provider
       value={{
+        transactionCount,
         connectWallet,
+        transactions,
         currentAccount,
-        formData,
-        setFormData,
-        handleChange,
+        isLoading,
         sendTransaction,
+        handleChange,
+        formData,
       }}
     >
       {children}
